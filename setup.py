@@ -13,7 +13,7 @@ setup(
     long_description = open('README.rst').read(),
     author='Matt Croydon, Mikhail Korobov',
     author_email='mcroydon@gmail.com, kmike84@gmail.com',
-    url='http://bitbucket.org/kmike/django-qsstats-magic/',
+    url='https://github.com/PetrDlouhy/django-qsstats-magic',
     packages=['qsstats'],
     requires=['dateutil(>=1.4.1, < 2.0)', 'six'],
     classifiers=[
@@ -27,6 +27,8 @@ setup(
         'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
 )
