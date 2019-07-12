@@ -14,3 +14,4 @@ script: tox
 before_script:
   - mysql -e 'create database qsstats_test;'
   - psql -c 'create database qsstats_test;' -U postgres
+  - mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql

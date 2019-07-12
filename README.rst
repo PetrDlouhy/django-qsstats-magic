@@ -17,6 +17,16 @@ Requirements
 * `python-dateutil <http://labix.org/python-dateutil>`_ > 1.4, < 2.0
 * `django <http://www.djangoproject.com/>`_ 1.8+
 
+Database
+--------
+
+If timezone support is enabled in Django, the database must have also timezone support installed.
+For MySQL it might be needed to run:
+
+::
+  - mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql
+
+
 License
 =======
 

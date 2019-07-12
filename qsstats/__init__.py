@@ -1,16 +1,17 @@
-__author__ = 'Matt Croydon, Mikhail Korobov, Pawel Tomasiewicz'
+__author__ = 'Matt Croydon, Mikhail Korobov, Pawel Tomasiewicz, Petr Dlouhy'
 __version__ = (0, 7, 0)
 
+import warnings
 from functools import partial
-import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
 
 from django.db.models import Count
 from django.db import DatabaseError, transaction
+from django.db.models.functions import Trunc
 from django.conf import settings
 
-from qsstats.utils import get_bounds, _to_datetime, _parse_interval, get_interval_sql, _remove_time
+from qsstats.utils import get_bounds, _to_datetime, _parse_interval, _remove_time
 from qsstats import compat
 from qsstats.exceptions import *
 
@@ -25,20 +26,8 @@ class QuerySetStats(object):
     def __init__(self, qs=None, date_field=None, aggregate=None, today=None):
         self.qs = qs
         self.date_field = date_field
-        self.aggregate = aggregate or Count('id')
+        self.aggregate = aggregate or Count('id', distinct=True)
         self.today = today or self.update_today()
-
-    def _guess_engine(self):
-        if hasattr(self.qs, 'db'): # django 1.2+
-            engine_name = settings.DATABASES[self.qs.db]['ENGINE']
-        else:
-            engine_name = settings.DATABASE_ENGINE
-        if 'mysql' in engine_name:
-            return 'mysql'
-        if 'postg' in engine_name: #postgres, postgis
-            return 'postgresql'
-        if 'sqlite' in engine_name:
-            return 'sqlite'
 
     # Aggregates for a specific period of time
 
@@ -66,12 +55,12 @@ class QuerySetStats(object):
 
         end = end or self.today
         args = [start, end, interval, date_field, aggregate]
-        engine = engine or self._guess_engine()
         sid = transaction.savepoint()
         try:
-            return self._fast_time_series(*(args+[engine]))
-        except (QuerySetStatsError, DatabaseError,):
+            return self._fast_time_series(*args)
+        except (ValueError):
             transaction.savepoint_rollback(sid)
+            warnings.warn("Your database doesn't support timezones. Switching to slower QSStats queries.")
             return self._slow_time_series(*args)
 
     def _slow_time_series(self, start, end, interval='days',
@@ -96,22 +85,25 @@ class QuerySetStats(object):
         return stat_list
 
     def _fast_time_series(self, start, end, interval='days',
-                          date_field=None, aggregate=None, engine=None):
+                          date_field=None, aggregate=None):
         ''' Aggregate over time intervals using just 1 sql query '''
 
         date_field = date_field or self.date_field
         aggregate = aggregate or self.aggregate
-        engine = engine or self._guess_engine()
 
         num, interval = _parse_interval(interval)
 
-        start, _ = get_bounds(start, interval.rstrip('s'))
-        _, end = get_bounds(end, interval.rstrip('s'))
-        interval_sql = get_interval_sql(date_field, interval, engine)
+        interval_s = interval.rstrip('s')
+        start, _ = get_bounds(start, interval_s)
+        _, end = get_bounds(end, interval_s)
 
         kwargs = {'%s__range' % date_field : (start, end)}
-        aggregate_data = self.qs.extra(select = {'d': interval_sql}).\
-                        filter(**kwargs).order_by().values('d').\
+
+        #  TODO: maybe we could use the tzinfo for the user's location
+        aggregate_data = self.qs.\
+                        filter(**kwargs).\
+                        annotate(d=Trunc(date_field, interval_s, tzinfo=start.tzinfo)).\
+                        order_by().values('d').\
                         annotate(agg=aggregate)
 
         today = _remove_time(compat.now())

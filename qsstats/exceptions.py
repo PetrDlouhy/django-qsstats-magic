@@ -4,9 +4,6 @@ class QuerySetStatsError(Exception):
 class InvalidInterval(QuerySetStatsError):
     pass
 
-class UnsupportedEngine(QuerySetStatsError):
-    pass
-
 class InvalidOperator(QuerySetStatsError):
     pass
 
