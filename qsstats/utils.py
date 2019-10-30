@@ -15,7 +15,7 @@ def _to_datetime(dt):
 
 def _parse_interval(interval):
     num = 1
-    match = re.match('(\d+)([A-Za-z]+)', interval)
+    match = re.match(r'(\d+)([A-Za-z]+)', interval)
 
     if match:
         num = int(match.group(1))
