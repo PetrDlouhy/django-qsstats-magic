@@ -14,7 +14,7 @@ from django.conf import settings
 from qsstats.utils import get_bounds, _to_datetime, _parse_interval, _remove_time
 from qsstats import compat
 from qsstats.exceptions import *
-
+from datetime import date, datetime
 from six import string_types
 
 class QuerySetStats(object):
@@ -110,6 +110,9 @@ class QuerySetStats(object):
         def to_dt(d):
             if isinstance(d, string_types):
                 return parse(d, yearfirst=True, default=today)
+            if type(d).__name__ == "date":
+                d = datetime(year=d.year, month=d.month, day=d.day, tzinfo=start.tzinfo)
+                return d
             return d
 
         data = dict((to_dt(item['d']), item['agg']) for item in aggregate_data)
